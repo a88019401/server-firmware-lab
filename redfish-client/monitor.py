@@ -32,6 +32,10 @@ def status_text(resource):
     status = resource.get("Status") or {}
     return status.get("Health", "Unknown")
 
+def needs_attention(health):
+    return health in ("Warning", "Critical")
+    
+
 
 def report():
     print("=" * 48)
@@ -65,7 +69,11 @@ def report():
             power = get_json(power_uri)
             for supply in power.get("PowerSupplies", []):
                 name = supply.get("Name", "Power Supply")
-                print(f" PSU ({name}) Health:", status_text(supply))
+                health = status_text(supply)
+                print(f" PSU ({name}) Health:", health)
+                #如果設備的健康狀態是 Warning 或 Critical，就顯示一則異常警告。
+                if needs_attention(health):
+                    print(f" [ALERT] {name} needs attention ! ({health})!")
 
 
 if __name__ == "__main__":

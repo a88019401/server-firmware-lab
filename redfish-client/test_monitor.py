@@ -40,7 +40,12 @@ class MonitorTests(unittest.TestCase):
     def test_reject_non_redfish_path(self):
         with self.assertRaises(ValueError):
             monitor.get_json("/invalid/path")
-
+    #如果輸入 Warning 或 Critical，答案就應該是 True；其他這兩種正常或未知情況應該是 False。
+    def test_needs_attention(self):
+        self.assertTrue(monitor.needs_attention("Warning"))
+        self.assertTrue(monitor.needs_attention("Critical"))
+        self.assertFalse(monitor.needs_attention("OK"))
+        self.assertFalse(monitor.needs_attention("Unknown"))
 
 if __name__ == "__main__":
     unittest.main()
