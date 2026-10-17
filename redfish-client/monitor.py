@@ -2,6 +2,8 @@
 
 import os
 import sys
+import time
+from datetime import datetime
 
 import requests
 
@@ -125,9 +127,32 @@ def report():
     print()
     print("Overall Health    :", overall.upper())
 
+def monitor_loop(interval_seconds=10):
+    print("Starting Redfish Auto Monitoring...")
+    print(f"Polling interval: {interval_seconds} seconds")
+    print("Press Ctrl+C to stop.\n")
+
+    try:
+        while True:
+            # 1. 取得目前時間
+            check_time = datetime.now().strftime("%H:%M:%S")
+
+            # 2. 顯示這次查詢時間
+            print(f"\n[CHECK] {check_time}")
+
+            # 3. 執行原本的 Redfish 查詢
+            report()
+
+            # 4. 等待下一次查詢
+            print(f"\n[INFO] Waiting {interval_seconds} seconds...")
+            time.sleep(interval_seconds)
+
+    except KeyboardInterrupt:
+        print("\n[INFO] Monitoring stopped by user.")
+
 if __name__ == "__main__":
     try:
-        report()
+        monitor_loop(interval_seconds=10)
     except requests.exceptions.Timeout:
         print("ERROR: Redfish request timed out.", file=sys.stderr)
         sys.exit(1)

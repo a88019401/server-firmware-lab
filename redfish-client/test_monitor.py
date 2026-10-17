@@ -62,6 +62,13 @@ class MonitorTests(unittest.TestCase):
 
         self.assertEqual(sum(counts.values()), 0)
         self.assertEqual(overall, "Unknown")
-    
+
+    @patch("monitor.time.sleep", side_effect=KeyboardInterrupt)
+    @patch("monitor.report")
+    def test_monitor_loop_runs_once(self, fake_report, fake_sleep):
+        monitor.monitor_loop(interval_seconds=10)
+
+        fake_report.assert_called_once()
+        fake_sleep.assert_called_once_with(10)
 if __name__ == "__main__":
     unittest.main()
