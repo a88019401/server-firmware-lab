@@ -47,5 +47,21 @@ class MonitorTests(unittest.TestCase):
         self.assertFalse(monitor.needs_attention("OK"))
         self.assertFalse(monitor.needs_attention("Unknown"))
 
+    def test_summarize_health(self):
+        counts, overall = monitor.summarize_health(
+            ["OK", "OK", "OK", "Warning"]
+        )
+
+        self.assertEqual(counts["OK"], 3)
+        self.assertEqual(counts["Warning"], 1)
+        self.assertEqual(counts["Critical"], 0)
+        self.assertEqual(overall, "Warning")
+
+    def test_summarize_health_empty(self):
+        counts, overall = monitor.summarize_health([])
+
+        self.assertEqual(sum(counts.values()), 0)
+        self.assertEqual(overall, "Unknown")
+    
 if __name__ == "__main__":
     unittest.main()
