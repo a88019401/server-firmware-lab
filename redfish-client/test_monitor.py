@@ -25,7 +25,9 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(monitor.status_text({}), "Unknown")
 
     def test_status_health(self):
-        self.assertEqual(monitor.status_text({"Status": {"Health": "Warning"}}), "Warning")
+        self.assertEqual(
+            monitor.status_text({"Status": {"Health": "Warning"}}), "Warning"
+        )
 
     @patch("monitor.get_json")
     def test_get_members_follows_collection_links(self, fake_get_json):
@@ -40,7 +42,8 @@ class MonitorTests(unittest.TestCase):
     def test_reject_non_redfish_path(self):
         with self.assertRaises(ValueError):
             monitor.get_json("/invalid/path")
-    #如果輸入 Warning 或 Critical，答案就應該是 True；其他這兩種正常或未知情況應該是 False。
+
+    # 如果輸入 Warning 或 Critical，答案就應該是 True；其他這兩種正常或未知情況應該是 False。
     def test_needs_attention(self):
         self.assertTrue(monitor.needs_attention("Warning"))
         self.assertTrue(monitor.needs_attention("Critical"))
@@ -48,9 +51,7 @@ class MonitorTests(unittest.TestCase):
         self.assertFalse(monitor.needs_attention("Unknown"))
 
     def test_summarize_health(self):
-        counts, overall = monitor.summarize_health(
-            ["OK", "OK", "OK", "Warning"]
-        )
+        counts, overall = monitor.summarize_health(["OK", "OK", "OK", "Warning"])
 
         self.assertEqual(counts["OK"], 3)
         self.assertEqual(counts["Warning"], 1)
@@ -70,5 +71,42 @@ class MonitorTests(unittest.TestCase):
 
         fake_report.assert_called_once()
         fake_sleep.assert_called_once_with(10)
+
+    def test_compare_health_snapshots_changed(self):
+        previous = {"Server": "OK", "PSU": "OK"}
+
+        current = {"Server": "OK", "PSU": "Warning"}
+
+        changes = monitor.compare_health_snapshots(previous, current)
+
+        self.assertEqual(changes, [("PSU", "OK", "Warning")])
+
+    def test_compare_health_snapshots_unchanged(self):
+        previous = {"Server": "OK", "PSU": "Warning"}
+
+        current = {"Server": "OK", "PSU": "Warning"}
+
+        changes = monitor.compare_health_snapshots(previous, current)
+
+        self.assertEqual(changes, [])
+
+    @patch("monitor.time.sleep", side_effect=[None, KeyboardInterrupt])
+    @patch(
+        "monitor.report",
+        side_effect=[
+            {"PSU:Power Supply Bay": "OK"},
+            {"PSU:Power Supply Bay": "Warning"},
+        ],
+    )
+    def test_monitor_loop_detects_health_change(self, fake_report, fake_sleep):
+        with patch("builtins.print") as fake_print:
+            monitor.monitor_loop(interval_seconds=10)
+
+        fake_print.assert_any_call("[ALERT] PSU:Power Supply Bay: OK -> Warning")
+
+        self.assertEqual(fake_report.call_count, 2)
+        self.assertEqual(fake_sleep.call_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
