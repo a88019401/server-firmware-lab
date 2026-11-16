@@ -10,7 +10,7 @@ import requests
 BASE_URL = os.getenv("REDFISH_URL", "http://127.0.0.1:8000").rstrip("/")
 TIMEOUT_SECONDS = 5
 
-
+## json>>>s
 def get_json(path):
     """Read one Redfish resource and return the decoded JSON dictionary."""
     if not path.startswith("/redfish/v1"):

@@ -106,7 +106,32 @@ class MonitorTests(unittest.TestCase):
 
         self.assertEqual(fake_report.call_count, 2)
         self.assertEqual(fake_sleep.call_count, 2)
+    @patch("monitor.time.sleep", side_effect=[None, KeyboardInterrupt])
+    @patch("monitor.report", side_effect=[{"PSU": "Warning"}, {"PSU": "Critical"}])
+    def test_monitor_loop_detects_critical(self, fake_report, fake_sleep):
+        with patch("builtins.print") as fake_print:
+            monitor.monitor_loop(interval_seconds=10)
 
+        fake_print.assert_any_call("[ALERT] PSU: Warning -> Critical")
+
+    @patch("monitor.time.sleep", side_effect=[None, KeyboardInterrupt])
+    @patch("monitor.report", side_effect=[{"PSU": "Critical"}, {"PSU": "OK"}])
+    def test_monitor_loop_detects_recovery(self, fake_report, fake_sleep):
+        with patch("builtins.print") as fake_print:
+            monitor.monitor_loop(interval_seconds=10)
+
+        fake_print.assert_any_call("[RECOVERY] PSU: Critical -> OK")
+
+    @patch("monitor.time.sleep", side_effect=[None, KeyboardInterrupt])
+    @patch("monitor.report", side_effect=[{"PSU": "Warning"}, {"PSU": "Warning"}])
+    def test_monitor_loop_no_duplicate_alert(self, fake_report, fake_sleep):
+        with patch("builtins.print") as fake_print:
+            monitor.monitor_loop(interval_seconds=10)
+
+        fake_print.assert_any_call("[INFO] No health changes detected.")
+        for printed_call in fake_print.call_args_list:
+            if printed_call.args:
+                self.assertFalse(printed_call.args[0].lstrip().startswith("[ALERT]"))
 
 if __name__ == "__main__":
     unittest.main()
